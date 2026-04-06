@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Bed Management</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .ward-section { margin-top: 20px; }
+        .ward-title { margin-bottom: 12px; color: var(--text-white); }
+        .bed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+        }
+        .bed-card {
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        .bed-card:hover { transform: translateY(-2px); }
+        .bed-card h4 { margin-bottom: 6px; }
+        .bed-card p { margin: 2px 0; font-size: 0.9rem; }
+        .status-available {
+            background: rgba(38, 184, 97, 0.18);
+            border-color: rgba(38, 184, 97, 0.45);
+        }
+        .status-occupied {
+            background: rgba(242, 76, 76, 0.18);
+            border-color: rgba(242, 76, 76, 0.45);
+        }
+        .status-maintenance {
+            background: rgba(241, 196, 15, 0.2);
+            border-color: rgba(241, 196, 15, 0.45);
+        }
+        .legend {
+            margin-top: 14px;
+            display: flex;
+            gap: 14px;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+        }
+        .legend span::before {
+            content: "";
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .legend .l-av::before { background: #26b861; }
+        .legend .l-oc::before { background: #f24c4c; }
+        .legend .l-ma::before { background: #f1c40f; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo">M</div>
+                <h2>MedCore</h2>
+            </div>
+            <nav>
+                <a class="nav-link" href="dashboard.html">Dashboard</a>
+                <a class="nav-link" href="patient.html">Patients</a>
+                <a class="nav-link" href="appointment.html">Appointments</a>
+                <a class="nav-link active" href="beds.html">Bed Management</a>
+                <a class="nav-link" href="pharmacy.html">Pharmacy</a>
+                <a class="nav-link admin-only-link" href="staff.html">Staff</a>
+                <a class="nav-link admin-only-link" href="#">Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="sidebar-profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Visual Bed Management</h1>
+                <p>Click an available bed to assign a patient</p>
+            </header>
+
+            <div class="legend">
+                <span class="l-av">Available</span>
+                <span class="l-oc">Occupied</span>
+                <span class="l-ma">Maintenance / Cleaning</span>
+            </div>
+
+            <section id="beds-container"></section>
+        </main>
+    </div>
+
+    <script>
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        function saveDb(db) {
+            localStorage.setItem('medcore_db', JSON.stringify(db));
+        }
+
+        function ensureBeds(db) {
+            if (db.beds.length > 0) return;
+            const wards = [
+                { name: "ICU", count: 6 },
+                { name: "General", count: 10 },
+                { name: "VIP", count: 4 }
+            ];
+            const maintenanceBeds = ["ICU-3", "General-7", "VIP-2"];
+            wards.forEach((ward) => {
+                for (let i = 1; i <= ward.count; i += 1) {
+                    const id = ward.name + "-" + i;
+                    db.beds.push({
+                        id,
+                        ward: ward.name,
+                        bedNo: i,
+                        status: maintenanceBeds.includes(id) ? "Maintenance" : "Available",
+                        patientName: ""
+                    });
+                }
+            });
+            saveDb(db);
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        document.getElementById('sidebar-profile-name').textContent = savedProfileName;
+        document.getElementById('sidebar-avatar').textContent = (savedProfileName.trim().charAt(0).toUpperCase() || "A");
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link').forEach((el) => {
+                el.style.display = 'none';
+            });
+        }
+
+        const db = getDb();
+        ensureBeds(db);
+
+        const bedsContainer = document.getElementById('beds-container');
+
+        function statusClass(status) {
+            if (status === "Available") return "status-available";
+            if (status === "Occupied") return "status-occupied";
+            return "status-maintenance";
+        }
+
+        function renderBeds() {
+            const wards = ["ICU", "General", "VIP"];
+            bedsContainer.innerHTML = wards.map((ward) => {
+                const wardBeds = db.beds.filter((bed) => bed.ward === ward);
+                return `
+                    <section class="ward-section">
+                        <h3 class="ward-title">${ward} Ward</h3>
+                        <div class="bed-grid">
+                            ${wardBeds.map((bed) => `
+                                <article class="bed-card ${statusClass(bed.status)}" data-id="${bed.id}">
+                                    <h4>Bed ${bed.id}</h4>
+                                    <p>Status: <strong>${bed.status}</strong></p>
+                                    <p>Patient: ${bed.patientName || "-"}</p>
+                                </article>
+                            `).join('')}
+                        </div>
+                    </section>
+                `;
+            }).join('');
+        }
+
+        bedsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.bed-card');
+            if (!card) return;
+            const bed = db.beds.find((b) => b.id === card.dataset.id);
+            if (!bed || bed.status !== "Available") return;
+
+            const patientNames = db.patients.map((p) => p.name).filter(Boolean);
+            const suggestion = patientNames.length ? "\nPatients: " + patientNames.join(", ") : "";
+            const selectedName = prompt("Assign patient name to " + bed.id + suggestion, patientNames[0] || "");
+            if (!selectedName || !selectedName.trim()) return;
+
+            bed.status = "Occupied";
+            bed.patientName = selectedName.trim();
+            saveDb(db);
+            renderBeds();
+        });
+
+        renderBeds();
+    </script>
+</body>
+</html>
