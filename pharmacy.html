@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Pharmacy Inventory</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .panel-form {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 18px;
+        }
+        .medicine-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .medicine-form input {
+            background: #11161a;
+            border: 1px solid var(--border-color);
+            color: var(--text-white);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .table-wrap {
+            margin-top: 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th { color: var(--text-gray); font-weight: 600; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-low { color: #ffd3d3; background: rgba(242, 76, 76, 0.22); border: 1px solid rgba(242, 76, 76, 0.4); }
+        .badge-ok { color: #c9f5dc; background: rgba(38, 184, 97, 0.2); border: 1px solid rgba(38, 184, 97, 0.38); }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo">M</div>
+                <h2>MedCore</h2>
+            </div>
+            <nav>
+                <a class="nav-link" href="dashboard.html">Dashboard</a>
+                <a class="nav-link" href="patient.html">Patients</a>
+                <a class="nav-link" href="appointment.html">Appointments</a>
+                <a class="nav-link" href="beds.html">Bed Management</a>
+                <a class="nav-link active" href="pharmacy.html">Pharmacy</a>
+                <a class="nav-link admin-only-link" href="staff.html">Staff</a>
+                <a class="nav-link admin-only-link" href="#">Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="sidebar-profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Pharmacy Inventory</h1>
+                <p>Add medicines and monitor low stock alerts in real-time</p>
+            </header>
+
+            <section class="panel-form">
+                <form id="medicine-form" class="medicine-form">
+                    <input id="medicine-name" type="text" placeholder="Medicine Name" required>
+                    <input id="medicine-category" type="text" placeholder="Category" required>
+                    <input id="medicine-stock" type="number" min="0" placeholder="Stock Level" required>
+                    <input id="medicine-price" type="number" min="0" step="0.01" placeholder="Unit Price" required>
+                    <button class="btn-primary" type="submit">Add Medicine</button>
+                </form>
+            </section>
+
+            <section class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Medicine Name</th>
+                            <th>Category</th>
+                            <th>Stock Level</th>
+                            <th>Unit Price</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medicine-table-body"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        function saveDb(db) {
+            localStorage.setItem('medcore_db', JSON.stringify(db));
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        document.getElementById('sidebar-profile-name').textContent = savedProfileName;
+        document.getElementById('sidebar-avatar').textContent = (savedProfileName.trim().charAt(0).toUpperCase() || "A");
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link').forEach((el) => {
+                el.style.display = 'none';
+            });
+        }
+
+        const db = getDb();
+        const form = document.getElementById('medicine-form');
+        const body = document.getElementById('medicine-table-body');
+
+        function ensureSeedData() {
+            if (db.pharmacy.length > 0) return;
+            db.pharmacy = [
+                { id: Date.now() + 1, name: "Paracetamol", category: "Analgesic", stockLevel: 45, unitPrice: 6.5 },
+                { id: Date.now() + 2, name: "Amoxicillin", category: "Antibiotic", stockLevel: 12, unitPrice: 14.0 }
+            ];
+            saveDb(db);
+        }
+
+        function getStatus(stockLevel) {
+            return Number(stockLevel) < 15
+                ? '<span class="badge badge-low">Low Stock</span>'
+                : '<span class="badge badge-ok">In Stock</span>';
+        }
+
+        function renderMedicines() {
+            if (db.pharmacy.length === 0) {
+                body.innerHTML = '<tr><td colspan="5">No medicines added yet</td></tr>';
+                return;
+            }
+            body.innerHTML = db.pharmacy
+                .slice()
+                .reverse()
+                .map((item) => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.category}</td>
+                        <td>${item.stockLevel}</td>
+                        <td>${Number(item.unitPrice).toFixed(2)}</td>
+                        <td>${getStatus(item.stockLevel)}</td>
+                    </tr>
+                `).join('');
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            db.pharmacy.push({
+                id: Date.now(),
+                name: document.getElementById('medicine-name').value.trim(),
+                category: document.getElementById('medicine-category').value.trim(),
+                stockLevel: Number(document.getElementById('medicine-stock').value),
+                unitPrice: Number(document.getElementById('medicine-price').value)
+            });
+            saveDb(db);
+            form.reset();
+            renderMedicines();
+        });
+
+        ensureSeedData();
+        renderMedicines();
+    </script>
+</body>
+</html>

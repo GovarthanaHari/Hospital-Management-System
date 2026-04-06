@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Book Appointment</title>
+    <link rel="stylesheet" href="appointment.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">M</div>
+                <h2>MedCore</h2>
+            </div>
+
+            <div class="nav-section">
+                <p class="nav-label">NAVIGATION</p>
+                <a href="dashboard.html" class="nav-item">
+                    <span class="icon">⊞</span> Dashboard
+                </a>
+                <a href="patient.html" class="nav-item">
+                    <span class="icon">👤</span> Patients
+                </a>
+                <a href="appointment.html" class="nav-item active">
+                    <span class="icon">📅</span> Appointments
+                </a>
+                <a href="beds.html" class="nav-item"><span class="icon">🛏</span> Bed Management</a>
+                <a href="pharmacy.html" class="nav-item"><span class="icon">💊</span> Pharmacy</a>
+                <a href="staff.html" class="nav-item admin-only-link"><span class="icon">👨‍⚕️</span> Staff</a>
+                <a href="#" class="nav-item admin-only-link"><span class="icon">⚙</span> Settings</a>
+            </div>
+
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+                <div class="more-opts">⋮</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="page-title">
+                    <h1>Book Appointment</h1>
+                    <p>Schedule a new patient visit</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-bar">
+                        <span>🔍</span>
+                        <input type="text" id="appointment-search" placeholder="Search appointments...">
+                    </div>
+                    <button class="icon-btn">🔔</button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>1. Select Department</h3>
+                    </div>
+                    <div class="department-grid">
+                        <div class="dept-card" onclick="selectDept(this, 'Orthopedics')">
+                            <div class="dept-icon">🦴</div>
+                            <h4>Orthopedics</h4>
+                            <p>Bone & Joint Care</p>
+                        </div>
+                        <div class="dept-card" onclick="selectDept(this, 'Dentistry')">
+                            <div class="dept-icon">🦷</div>
+                            <h4>Dentistry</h4>
+                            <p>Dental Care & Surgery</p>
+                        </div>
+                        <div class="dept-card" onclick="selectDept(this, 'Physiotherapy')">
+                            <div class="dept-icon">🏃‍♂️</div>
+                            <h4>Physiotherapy</h4>
+                            <p>Rehabilitation</p>
+                        </div>
+                        <div class="dept-card" onclick="selectDept(this, 'Cardiology')">
+                            <div class="dept-icon">❤️</div>
+                            <h4>Cardiology</h4>
+                            <p>Heart & Vascular</p>
+                        </div>
+                        <div class="dept-card" onclick="selectDept(this, 'Neurology')">
+                            <div class="dept-icon">🧠</div>
+                            <h4>Neurology</h4>
+                            <p>Brain & Nerves</p>
+                        </div>
+                        <div class="dept-card" onclick="selectDept(this, 'General')">
+                            <div class="dept-icon">🩺</div>
+                            <h4>General Practice</h4>
+                            <p>Routine Checkups</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>2. Appointment Details</h3>
+                        <span id="selected-dept-badge" class="selected-badge">No department selected</span>
+                    </div>
+                    
+                    <form id="booking-form" class="booking-form">
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label>Patient Name</label>
+                                <input type="text" id="patient-name" placeholder="Enter patient's full name" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Phone Number</label>
+                                <input type="tel" id="patient-phone" placeholder="+1 (555) 000-0000" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label>Date</label>
+                                <input type="date" id="appointment-date" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Time Slot</label>
+                                <select id="appointment-time" required>
+                                    <option value="" disabled selected>Select a time</option>
+                                    <option value="09:00 AM">09:00 AM - 10:00 AM</option>
+                                    <option value="10:30 AM">10:30 AM - 11:30 AM</option>
+                                    <option value="01:00 PM">01:00 PM - 02:00 PM</option>
+                                    <option value="03:00 PM">03:00 PM - 04:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Reason for Visit (Optional)</label>
+                            <textarea id="appointment-reason" rows="3" placeholder="Briefly describe the symptoms or reason for visit..."></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Confirm Appointment</button>
+                            <div id="booking-msg" class="booking-msg"></div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>3. Saved Appointments</h3>
+                    </div>
+                    <div class="table-search">
+                        <span>🔎</span>
+                        <input type="text" id="appointment-table-search" placeholder="Search by patient name...">
+                    </div>
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointments-table-body"></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        let selectedDepartment = "";
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        function saveDb(db) {
+            localStorage.setItem('medcore_db', JSON.stringify(db));
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        const safeName = savedProfileName || "Admin User";
+        const firstLetter = safeName.trim().charAt(0).toUpperCase() || "A";
+        document.getElementById('profile-name').textContent = safeName;
+        document.getElementById('sidebar-avatar').textContent = firstLetter;
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link').forEach((el) => {
+                el.style.display = 'none';
+            });
+        }
+
+        const appointmentsTableBody = document.getElementById('appointments-table-body');
+        const appointmentSearch = document.getElementById('appointment-search');
+        const appointmentTableSearch = document.getElementById('appointment-table-search');
+        const appointmentDateInput = document.getElementById('appointment-date');
+        const appointmentTimeSelect = document.getElementById('appointment-time');
+        let db = getDb();
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function updateBookedTimeSlotOptions() {
+            const selectedDate = appointmentDateInput.value;
+            const bookedTimes = db.appointments
+                .filter((a) => a.date === selectedDate && a.status !== 'Cancelled')
+                .map((a) => a.time);
+            Array.from(appointmentTimeSelect.options).forEach((option) => {
+                if (!option.value) return;
+                const isBooked = bookedTimes.includes(option.value);
+                option.disabled = isBooked;
+                option.textContent = isBooked ? `${option.value} - Booked` : `${option.value} - ${option.value === "09:00 AM" ? "10:00 AM" : option.value === "10:30 AM" ? "11:30 AM" : option.value === "01:00 PM" ? "02:00 PM" : "04:00 PM"}`;
+            });
+        }
+
+        function renderAppointments(searchTerm = "") {
+            const term = searchTerm.trim().toLowerCase();
+            const filtered = db.appointments.filter((appt) => (appt.name || "").toLowerCase().includes(term));
+
+            if (filtered.length === 0) {
+                appointmentsTableBody.innerHTML = '<tr><td colspan="6">No appointments found</td></tr>';
+                return;
+            }
+
+            appointmentsTableBody.innerHTML = filtered
+                .slice()
+                .reverse()
+                .map((appt) => `
+                    <tr>
+                        <td>${appt.name}</td>
+                        <td>${appt.department}</td>
+                        <td>${appt.date}</td>
+                        <td>${appt.time}</td>
+                        <td>
+                            <select class="status-select" data-id="${appt.id}">
+                                <option value="Pending" ${appt.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Completed" ${appt.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                                <option value="Cancelled" ${appt.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </td>
+                        <td><button class="delete-btn" data-id="${appt.id}">Delete</button></td>
+                    </tr>
+                `)
+                .join('');
+        }
+
+        renderAppointments();
+        appointmentSearch.addEventListener('input', () => renderAppointments(appointmentSearch.value));
+        appointmentTableSearch.addEventListener('input', () => renderAppointments(appointmentTableSearch.value));
+        appointmentDateInput.addEventListener('change', updateBookedTimeSlotOptions);
+        updateBookedTimeSlotOptions();
+
+        // Function to handle department selection
+        function selectDept(card, deptName) {
+            document.querySelectorAll('.dept-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            
+            selectedDepartment = deptName;
+            const badge = document.getElementById('selected-dept-badge');
+            badge.textContent = `Selected: ${deptName}`;
+            badge.style.backgroundColor = 'rgba(92, 199, 168, 0.2)';
+            badge.style.color = 'var(--accent-green)';
+            badge.style.borderColor = 'var(--accent-green)';
+        }
+
+        // Handle Form Submission
+        document.getElementById('booking-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const msgBox = document.getElementById('booking-msg');
+
+            if (!selectedDepartment) {
+                msgBox.style.color = '#ff6b6b';
+                msgBox.textContent = "Please select a department first!";
+                return;
+            }
+
+            const name = document.getElementById('patient-name').value;
+            const date = document.getElementById('appointment-date').value;
+            const time = document.getElementById('appointment-time').value;
+            const reason = document.getElementById('appointment-reason').value.trim();
+
+            const appointment = {
+                id: Date.now(),
+                name,
+                date,
+                time,
+                department: selectedDepartment,
+                reason,
+                status: 'Pending',
+                createdAt: new Date().toISOString()
+            };
+            db.appointments.push(appointment);
+            saveDb(db);
+            renderAppointments(appointmentSearch.value);
+            updateBookedTimeSlotOptions();
+            showToast('✅ Successfully Saved!');
+
+            msgBox.style.color = 'var(--accent-green)';
+            msgBox.innerHTML = `✅ Successfully booked <b>${selectedDepartment}</b> appointment for <b>${name}</b> on ${date} at ${time}.`;
+            
+            this.reset();
+            document.querySelectorAll('.dept-card').forEach(c => c.classList.remove('active'));
+            selectedDepartment = "";
+            const badge = document.getElementById('selected-dept-badge');
+            badge.textContent = 'No department selected';
+            badge.style.backgroundColor = 'transparent';
+            badge.style.borderColor = 'var(--border-color)';
+            badge.style.color = 'var(--text-gray)';
+        });
+
+        appointmentsTableBody.addEventListener('change', (e) => {
+            const select = e.target.closest('.status-select');
+            if (!select) return;
+            const appointment = db.appointments.find((a) => String(a.id) === select.dataset.id);
+            if (!appointment) return;
+            appointment.status = select.value;
+            saveDb(db);
+            updateBookedTimeSlotOptions();
+            showToast('✅ Successfully Updated!');
+        });
+
+        appointmentsTableBody.addEventListener('click', (e) => {
+            const button = e.target.closest('.delete-btn');
+            if (!button) return;
+            db.appointments = db.appointments.filter((a) => String(a.id) !== button.dataset.id);
+            saveDb(db);
+            renderAppointments(appointmentTableSearch.value || appointmentSearch.value);
+            updateBookedTimeSlotOptions();
+            showToast('✅ Successfully Deleted!');
+        });
+    </script>
+</body>
+</html>

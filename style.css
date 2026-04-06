@@ -1,0 +1,243 @@
+/* CSS Variables for Exact Theme Matching */
+:root {
+    --bg-dark: #121619; /* Deep dark teal/black background */
+    --accent-green: #5cc7a8; /* Medical mint green */
+    --text-white: #ffffff;
+    --text-gray: #8c9b9d; /* Muted gray for subtitles/descriptions */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.03);
+}
+
+/* Reset & Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Subtle dark glow effect */
+    background-image: radial-gradient(circle at 30% 50%, rgba(92, 199, 168, 0.04) 0%, transparent 60%);
+}
+
+/* WIDENED CONTAINER */
+.container {
+    display: flex;
+    width: 100%;
+    max-width: 1450px; /* Spreads out across the monitor */
+    height: 100%;
+    padding: 0 6%; /* Adjusts spacing from the edges of the screen */
+    justify-content: space-between; /* Pushes the left and right sides apart */
+    align-items: center;
+}
+
+/* --- Left Side: Information Section --- */
+.info-section {
+    flex: 0 0 55%; /* Takes up 55% of the space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(92, 199, 168, 0.2);
+    color: var(--accent-green);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 2.5rem;
+    width: fit-content;
+}
+
+.main-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 4.2rem; /* Increased size to fill space */
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.main-heading .highlight {
+    color: var(--accent-green);
+    font-style: italic;
+}
+
+.description {
+    color: var(--text-gray);
+    font-size: 1.05rem; /* Increased size */
+    line-height: 1.6;
+    max-width: 480px; /* Widened paragraph */
+    margin-bottom: 4rem;
+}
+
+.stats-container {
+    display: flex;
+    align-items: center;
+    gap: 3rem; /* Increased gap between stats */
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.stat-number {
+    color: var(--accent-green);
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.stat-label {
+    color: var(--text-gray);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.stat-divider {
+    width: 1px;
+    height: 40px;
+    background-color: var(--border-color);
+}
+
+/* --- Right Side: Form Section --- */
+.form-section {
+    flex: 0 0 40%; /* Takes up 40% of the space */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Pushes form to the right */
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 420px; /* Made the form slightly wider */
+}
+
+.form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+    color: var(--text-gray);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+}
+
+.input-group {
+    margin-bottom: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    color: var(--accent-green);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.input-group input {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-white);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    border-color: var(--accent-green);
+}
+
+.input-group input::placeholder {
+    color: #4a5559;
+}
+
+.btn-signin {
+    width: 100%;
+    background-color: var(--accent-green);
+    color: #000000;
+    border: none;
+    padding: 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    transition: opacity 0.2s;
+    letter-spacing: 0.02em;
+}
+
+.btn-signin:hover {
+    opacity: 0.9;
+}
+
+/* --- Form Switching & Messages --- */
+.form-switch-text {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    margin-top: 1rem;
+}
+
+.form-switch-text a {
+    color: var(--accent-green);
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.form-switch-text a:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+.auth-message {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-height: 20px; /* Keeps layout stable even when empty */
+}
+
+/* Responsive View for smaller screens */
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+        padding: 40px;
+        align-items: flex-start;
+        justify-content: center;
+    }
+    
+    .info-section {
+        flex: none;
+        width: 100%;
+        margin-bottom: 4rem;
+    }
+    
+    .form-section {
+        flex: none;
+        justify-content: flex-start;
+        width: 100%;
+    }
+}

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Patients</title>
+    <link rel="stylesheet" href="patient.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="patient-layout">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo">M</div>
+                <h2>MedCore</h2>
+            </div>
+            <nav>
+                <a href="dashboard.html">Dashboard</a>
+                <a class="active" href="patient.html">Patients</a>
+                <a href="appointment.html">Appointments</a>
+                <a href="beds.html">Bed Management</a>
+                <a href="pharmacy.html">Pharmacy</a>
+                <a class="admin-only-link" href="staff.html">Staff</a>
+                <a class="admin-only-link" href="#">Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1>Patients</h1>
+                <p>Dedicated page for patient records and quick entry</p>
+                <div class="counter-card">Total Patients Entered: <strong id="total-patients">0</strong></div>
+            </header>
+
+            <section class="panel">
+                <h3>Patient Records</h3>
+                <div class="table-tools">
+                    <div class="table-search">
+                    <span>🔎</span>
+                    <input id="patient-search" type="text" placeholder="Search patient by name...">
+                    </div>
+                    <button id="export-patient-csv" type="button">Export CSV</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Age</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patient-table-body"></tbody>
+                </table>
+            </section>
+
+            <section class="panel">
+                <h3>Add New Patient</h3>
+                <form class="entry-form">
+                    <input id="patient-name-input" type="text" placeholder="Patient name" required>
+                    <input id="patient-age-input" type="number" placeholder="Age" required>
+                    <select id="patient-dept-input" required>
+                        <option value="" selected disabled>Select department</option>
+                        <option>General</option>
+                        <option>Orthopedics</option>
+                        <option>Cardiology</option>
+                        <option>Neurology</option>
+                    </select>
+                    <input id="patient-condition-input" type="text" placeholder="Condition / Symptoms" required>
+                    <input id="patient-assignee-input" type="text" placeholder="Assigned Doctor / Nurse" required>
+                    <button type="submit">Add Patient</button>
+                </form>
+            </section>
+        </main>
+    </div>
+    <div id="patient-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Patient Details</h3>
+                <button id="close-modal-btn" class="close-btn">×</button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+            <button id="print-invoice-btn" class="print-btn" type="button">Print Invoice</button>
+        </div>
+    </div>
+    <div id="print-invoice-area" class="print-invoice-area"></div>
+    <div id="toast-container" class="toast-container"></div>
+    <script>
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        function saveDb(db) {
+            localStorage.setItem('medcore_db', JSON.stringify(db));
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const safeName = savedProfileName || "Admin User";
+        const firstLetter = safeName.trim().charAt(0).toUpperCase() || "A";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        document.getElementById('profile-name').textContent = safeName;
+        document.getElementById('sidebar-avatar').textContent = firstLetter;
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link').forEach((el) => {
+                el.style.display = 'none';
+            });
+        }
+
+        const patientTableBody = document.getElementById('patient-table-body');
+        const totalPatientsEl = document.getElementById('total-patients');
+        const patientForm = document.querySelector('.entry-form');
+        const patientSearch = document.getElementById('patient-search');
+        const patientModal = document.getElementById('patient-modal');
+        const modalBody = document.getElementById('modal-body');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const printInvoiceBtn = document.getElementById('print-invoice-btn');
+        const exportPatientCsvBtn = document.getElementById('export-patient-csv');
+        let selectedPatientId = null;
+        let db = getDb();
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function updatePatientCounter() {
+            totalPatientsEl.textContent = String(db.patients.length);
+        }
+
+        function renderPatients(searchTerm = "") {
+            const term = searchTerm.trim().toLowerCase();
+            const filtered = db.patients.filter((p) => (p.name || "").toLowerCase().includes(term));
+            if (filtered.length === 0) {
+                patientTableBody.innerHTML = '<tr><td colspan="5">No patients entered yet</td></tr>';
+                return;
+            }
+
+            patientTableBody.innerHTML = filtered
+                .slice()
+                .reverse()
+                .map((p) => `<tr>
+                    <td>${p.name}</td>
+                    <td>${p.age}</td>
+                    <td>${p.department}</td>
+                    <td>${p.status}</td>
+                    <td>
+                        <button type="button" class="view-btn" data-patient-id="${p.id}">View</button>
+                        <button type="button" class="delete-btn" data-patient-id="${p.id}">Delete</button>
+                    </td>
+                </tr>`)
+                .join('');
+        }
+
+        function openPatientModal(patientId) {
+            const patient = db.patients.find((p) => String(p.id) === String(patientId));
+            if (!patient) return;
+            const billing = patient.billing || {
+                totalBill: 0,
+                amountPaid: 0,
+                paymentMethod: "Not Set",
+                pendingBalance: 0
+            };
+            modalBody.innerHTML = `
+                <div class="detail-grid">
+                    <p><strong>Name:</strong> ${patient.name}</p>
+                    <p><strong>Age:</strong> ${patient.age}</p>
+                    <p><strong>Department:</strong> ${patient.department}</p>
+                    <p><strong>Status:</strong> ${patient.status}</p>
+                    <p><strong>Condition / Symptoms:</strong> ${patient.condition}</p>
+                    <p><strong>Assigned Doctor / Nurse:</strong> ${patient.assignedTo}</p>
+                </div>
+                <div class="billing-box">
+                    <h4>Billing Details</h4>
+                    <p><strong>Total Bill:</strong> <span id="billing-total-text">${billing.totalBill}</span></p>
+                    <p><strong>Amount Paid:</strong> <span id="billing-paid-text">${billing.amountPaid}</span></p>
+                    <p><strong>Payment Method:</strong> <span id="billing-method-text">${billing.paymentMethod}</span></p>
+                    <p><strong>Pending Balance:</strong> <span id="billing-pending-text">${billing.pendingBalance}</span></p>
+                </div>
+                <div class="billing-edit-section">
+                    <h4>Edit Billing</h4>
+                    <div class="billing-form-grid">
+                        <div>
+                            <label for="billing-total-input">Total Bill</label>
+                            <input id="billing-total-input" type="number" min="0" value="${billing.totalBill}">
+                        </div>
+                        <div>
+                            <label for="billing-paid-input">Amount Paid</label>
+                            <input id="billing-paid-input" type="number" min="0" value="${billing.amountPaid}">
+                        </div>
+                        <div>
+                            <label for="billing-method-input">Payment Method</label>
+                            <select id="billing-method-input">
+                                <option value="">Select</option>
+                                <option value="Cash" ${billing.paymentMethod === 'Cash' ? 'selected' : ''}>Cash</option>
+                                <option value="Card" ${billing.paymentMethod === 'Card' ? 'selected' : ''}>Card</option>
+                                <option value="Insurance" ${billing.paymentMethod === 'Insurance' ? 'selected' : ''}>Insurance</option>
+                                <option value="UPI" ${billing.paymentMethod === 'UPI' ? 'selected' : ''}>UPI</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="save-billing-btn" type="button" class="save-billing-btn">Save Billing Details</button>
+                </div>
+            `;
+            selectedPatientId = patient.id;
+            patientModal.classList.add('show');
+
+            document.getElementById('save-billing-btn').addEventListener('click', () => {
+                const totalBill = Number(document.getElementById('billing-total-input').value || 0);
+                const amountPaid = Number(document.getElementById('billing-paid-input').value || 0);
+                const paymentMethod = document.getElementById('billing-method-input').value || "Select";
+                const pendingBalance = totalBill - amountPaid;
+
+                const patientIndex = db.patients.findIndex((p) => String(p.id) === String(selectedPatientId));
+                if (patientIndex === -1) return;
+
+                db.patients[patientIndex].billing = {
+                    totalBill,
+                    amountPaid,
+                    paymentMethod,
+                    pendingBalance
+                };
+                saveDb(db);
+
+                document.getElementById('billing-total-text').textContent = String(totalBill);
+                document.getElementById('billing-paid-text').textContent = String(amountPaid);
+                document.getElementById('billing-method-text').textContent = paymentMethod;
+                document.getElementById('billing-pending-text').textContent = String(pendingBalance);
+                showToast('✅ Billing Details Saved!');
+            });
+        }
+
+        renderPatients();
+        updatePatientCounter();
+        patientSearch.addEventListener('input', () => renderPatients(patientSearch.value));
+        closeModalBtn.addEventListener('click', () => patientModal.classList.remove('show'));
+        patientModal.addEventListener('click', (e) => {
+            if (e.target === patientModal) patientModal.classList.remove('show');
+        });
+        patientTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.view-btn');
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (btn) {
+                openPatientModal(btn.dataset.patientId);
+                return;
+            }
+            if (deleteBtn) {
+                db.patients = db.patients.filter((p) => String(p.id) !== deleteBtn.dataset.patientId);
+                saveDb(db);
+                renderPatients(patientSearch.value);
+                updatePatientCounter();
+                showToast('✅ Successfully Deleted!');
+            }
+        });
+
+        patientForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name = document.getElementById('patient-name-input').value.trim();
+            const age = document.getElementById('patient-age-input').value.trim();
+            const dept = document.getElementById('patient-dept-input').value;
+            const condition = document.getElementById('patient-condition-input').value.trim();
+            const assignedTo = document.getElementById('patient-assignee-input').value.trim();
+
+            db.patients.push({
+                id: Date.now(),
+                name,
+                age,
+                department: dept,
+                condition,
+                assignedTo,
+                status: 'Active',
+                billing: {
+                    totalBill: 12000,
+                    amountPaid: 0,
+                    paymentMethod: "Cash",
+                    pendingBalance: 12000
+                },
+                createdAt: new Date().toISOString()
+            });
+            saveDb(db);
+            renderPatients(patientSearch.value);
+
+            this.reset();
+            updatePatientCounter();
+            showToast('✅ Successfully Saved!');
+        });
+
+        printInvoiceBtn.addEventListener('click', () => {
+            if (!selectedPatientId) return;
+            const patient = db.patients.find((p) => String(p.id) === String(selectedPatientId));
+            if (!patient) return;
+            const billing = patient.billing || {};
+            const printArea = document.getElementById('print-invoice-area');
+            printArea.innerHTML = `
+                <div class="invoice-sheet">
+                    <h2>MedCore Hospital Invoice</h2>
+                    <p><strong>Patient:</strong> ${patient.name}</p>
+                    <p><strong>Department:</strong> ${patient.department}</p>
+                    <p><strong>Condition:</strong> ${patient.condition}</p>
+                    <hr>
+                    <p><strong>Total Bill:</strong> ${billing.totalBill || 0}</p>
+                    <p><strong>Amount Paid:</strong> ${billing.amountPaid || 0}</p>
+                    <p><strong>Payment Method:</strong> ${billing.paymentMethod || "N/A"}</p>
+                    <p><strong>Pending Balance:</strong> ${billing.pendingBalance || 0}</p>
+                </div>
+            `;
+            window.print();
+        });
+
+        exportPatientCsvBtn.addEventListener('click', () => {
+            const rows = [["Name", "Age", "Department", "Status", "Condition", "Assigned To"]];
+            db.patients.forEach((p) => {
+                rows.push([p.name, p.age, p.department, p.status, p.condition, p.assignedTo]);
+            });
+            const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "patients.csv";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('✅ Successfully Exported!');
+        });
+    </script>
+</body>
+</html>

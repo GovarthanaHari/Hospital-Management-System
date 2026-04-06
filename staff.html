@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Staff</title>
+    <link rel="stylesheet" href="staff.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="staff-layout">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo">M</div>
+                <h2>MedCore</h2>
+            </div>
+            <nav>
+                <a class="nav-link" href="dashboard.html">Dashboard</a>
+                <a class="nav-link" href="patient.html">Patients</a>
+                <a class="nav-link" href="appointment.html">Appointments</a>
+                <a class="nav-link" href="beds.html">Bed Management</a>
+                <a class="nav-link" href="pharmacy.html">Pharmacy</a>
+                <a class="nav-link active" href="staff.html">Staff</a>
+                <a class="nav-link admin-only-link" href="#">Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1>Staff Directory</h1>
+                <p>Doctors and nurses with departments and cabin numbers</p>
+            </header>
+
+            <section class="panel">
+                <h3>Add Staff Member</h3>
+                <form id="staff-form" class="staff-form">
+                    <input id="staff-name" type="text" placeholder="Name" required>
+                    <input id="staff-department" type="text" placeholder="Department" required>
+                    <input id="staff-room" type="text" placeholder="Cabin / Room" required>
+                    <select id="staff-role" required>
+                        <option value="" selected disabled>Select Role</option>
+                        <option value="Doctor">Doctor</option>
+                        <option value="Nurse">Nurse</option>
+                        <option value="Wardboy">Wardboy</option>
+                    </select>
+                    <button type="submit">Add Staff</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <div class="table-tools">
+                    <div class="table-search">
+                    <span>🔎</span>
+                    <input type="text" id="staff-search" placeholder="Search staff by name...">
+                    </div>
+                    <button id="export-staff-csv" type="button">Export CSV</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Cabin / Room</th>
+                            <th>Role</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staff-table-body"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        function saveDb(db) {
+            localStorage.setItem('medcore_db', JSON.stringify(db));
+        }
+
+        const db = getDb();
+        if (db.staff.length === 0) {
+            db.staff = [
+                { name: "Dr. Priya Nair", department: "Cardiology", room: "C-204", role: "Doctor" },
+                { name: "Dr. Arun Menon", department: "Neurology", room: "N-108", role: "Doctor" },
+                { name: "Nurse Kavya", department: "General", room: "G-014", role: "Nurse" },
+                { name: "Dr. Rahul Sen", department: "Orthopedics", room: "O-321", role: "Doctor" }
+            ];
+            saveDb(db);
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        const safeName = savedProfileName || "Admin User";
+        document.getElementById('profile-name').textContent = safeName;
+        document.getElementById('sidebar-avatar').textContent = safeName.trim().charAt(0).toUpperCase() || "A";
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link, a[href=\"staff.html\"]').forEach((el) => {
+                if (!el.classList.contains('active')) el.style.display = 'none';
+            });
+            window.location.href = "dashboard.html";
+        }
+
+        const tableBody = document.getElementById('staff-table-body');
+        const staffSearch = document.getElementById('staff-search');
+        const staffForm = document.getElementById('staff-form');
+        const exportStaffCsvBtn = document.getElementById('export-staff-csv');
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        function getRole(staffItem) {
+            if (staffItem.role) return staffItem.role;
+            return (staffItem.name || "").toLowerCase().includes("nurse") ? "Nurse" : "Doctor";
+        }
+
+        function renderStaff(searchTerm = "") {
+            const term = searchTerm.trim().toLowerCase();
+            const filtered = db.staff.filter((s) => (s.name || "").toLowerCase().includes(term));
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4">No staff found</td></tr>';
+                return;
+            }
+            tableBody.innerHTML = filtered
+                .map((staff) => `<tr>
+                    <td>${staff.name}</td>
+                    <td>${staff.department}</td>
+                    <td>${staff.room}</td>
+                    <td>${getRole(staff)}</td>
+                    <td><button class="delete-btn" data-id="${staff.id || ""}" data-name="${staff.name}">Delete</button></td>
+                </tr>`)
+                .join('');
+        }
+
+        renderStaff();
+        staffSearch.addEventListener('input', () => renderStaff(staffSearch.value));
+
+        staffForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            db.staff.push({
+                id: Date.now(),
+                name: document.getElementById('staff-name').value.trim(),
+                department: document.getElementById('staff-department').value.trim(),
+                room: document.getElementById('staff-room').value.trim(),
+                role: document.getElementById('staff-role').value
+            });
+            saveDb(db);
+            this.reset();
+            renderStaff(staffSearch.value);
+            showToast('✅ Successfully Saved!');
+        });
+
+        tableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.delete-btn');
+            if (!btn) return;
+            db.staff = db.staff.filter((s) => String(s.id || s.name) !== String(btn.dataset.id || btn.dataset.name));
+            saveDb(db);
+            renderStaff(staffSearch.value);
+            showToast('✅ Successfully Deleted!');
+        });
+
+        exportStaffCsvBtn.addEventListener('click', () => {
+            const rows = [["Name", "Department", "Cabin / Room", "Role"]];
+            db.staff.forEach((s) => rows.push([s.name, s.department, s.room, getRole(s)]));
+            const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "staff.csv";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('✅ Successfully Exported!');
+        });
+    </script>
+</body>
+</html>

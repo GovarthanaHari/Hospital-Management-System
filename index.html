@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore Hospital System - Login</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container">
+        <div class="info-section">
+            <div class="badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                MEDCORE HOSPITAL SYSTEM
+            </div>
+            
+            <h1 class="main-heading">
+                Caring for lives,<br>
+                <span class="highlight">every day.</span>
+            </h1>
+            
+            <p class="description">
+                A complete hospital management platform built for doctors, nurses and administrators to manage patients with care and precision.
+            </p>
+            
+            <div class="stats-container">
+                <div class="stat-item">
+                    <h2 class="stat-number">1,200+</h2>
+                    <p class="stat-label">PATIENTS SERVED</p>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <h2 class="stat-number">48</h2>
+                    <p class="stat-label">DOCTORS ON DUTY</p>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <h2 class="stat-number">24/7</h2>
+                    <p class="stat-label">ALWAYS AVAILABLE</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-wrapper">
+                <h2 class="form-title" id="form-title">Welcome back</h2>
+                <p class="form-subtitle" id="form-subtitle">Sign in to your hospital account</p>
+                
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="login-username">USERNAME</label>
+                        <input type="text" id="login-username" placeholder="Enter username" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="login-password">PASSWORD</label>
+                        <input type="password" id="login-password" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-signin">SIGN IN &rarr;</button>
+                    <p class="form-switch-text">Don't have an account? <a href="#" id="show-signup">Sign up</a></p>
+                </form>
+
+                <form id="signup-form" style="display: none;">
+                    <div class="input-group">
+                        <label for="signup-username">CHOOSE USERNAME</label>
+                        <input type="text" id="signup-username" placeholder="Create a username" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="signup-password">CREATE PASSWORD</label>
+                        <input type="password" id="signup-password" placeholder="Create a strong password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-signin">CREATE ACCOUNT &rarr;</button>
+                    <p class="form-switch-text">Already have an account? <a href="#" id="show-login">Sign in</a></p>
+                </form>
+                
+                <div id="auth-message" class="auth-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function initializeDb() {
+            const raw = localStorage.getItem('medcore_db');
+            if (raw) return;
+            const initialDb = {
+                appointments: [],
+                patients: [],
+                beds: [],
+                pharmacy: [],
+                staff: [
+                    { name: "Dr. Priya Nair", department: "Cardiology", room: "C-204", role: "Doctor" },
+                    { name: "Dr. Arun Menon", department: "Neurology", room: "N-108", role: "Doctor" },
+                    { name: "Nurse Kavya", department: "General", room: "G-014", role: "Nurse" },
+                    { name: "Dr. Rahul Sen", department: "Orthopedics", room: "O-321", role: "Doctor" }
+                ]
+            };
+            localStorage.setItem('medcore_db', JSON.stringify(initialDb));
+        }
+
+        initializeDb();
+
+        // Get elements
+        const loginForm = document.getElementById('login-form');
+        function getRoleFromUsername(username) {
+            const u = (username || "").toLowerCase();
+            if (u.includes("nurse")) return "Nurse";
+            if (u.includes("doctor") || u.includes("dr")) return "Doctor";
+            return "Admin";
+        }
+
+        const signupForm = document.getElementById('signup-form');
+        const showSignupBtn = document.getElementById('show-signup');
+        const showLoginBtn = document.getElementById('show-login');
+        const formTitle = document.getElementById('form-title');
+        const formSubtitle = document.getElementById('form-subtitle');
+        const authMessage = document.getElementById('auth-message');
+
+        // Toggle to Sign Up Form
+        showSignupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'block';
+            formTitle.textContent = 'Create Account';
+            formSubtitle.textContent = 'Register a new hospital account';
+            authMessage.textContent = ''; // clear messages
+        });
+
+        // Toggle to Login Form
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupForm.style.display = 'none';
+            loginForm.style.display = 'block';
+            formTitle.textContent = 'Welcome back';
+            formSubtitle.textContent = 'Sign in to your hospital account';
+            authMessage.textContent = ''; // clear messages
+        });
+
+        // Handle Sign Up
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent page reload
+            const user = document.getElementById('signup-username').value;
+            const pass = document.getElementById('signup-password').value;
+            
+            // Save credentials to local storage (simulating a database)
+            localStorage.setItem('medcore_username', user);
+            localStorage.setItem('medcore_password', pass);
+            localStorage.setItem('medcore_active_user', user.trim());
+            localStorage.setItem('medcore_active_role', getRoleFromUsername(user));
+            
+            authMessage.style.color = 'var(--accent-green)';
+            authMessage.textContent = 'Account created successfully! Switching to login...';
+            signupForm.reset();
+            
+            // Automatically switch back to login after 1.5 seconds
+            setTimeout(() => {
+                showLoginBtn.click();
+            }, 1500);
+        });
+
+        // Handle Login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent page reload
+            const user = document.getElementById('login-username').value;
+            const pass = document.getElementById('login-password').value;
+            localStorage.setItem('medcore_active_user', user.trim());
+            localStorage.setItem('medcore_active_role', getRoleFromUsername(user));
+            
+            // Retrieve saved credentials from local storage
+            const savedUser = localStorage.getItem('medcore_username');
+            const savedPass = localStorage.getItem('medcore_password');
+            
+            // Check if they match
+            if (user === savedUser && pass === savedPass) {
+                authMessage.style.color = 'var(--accent-green)';
+                authMessage.textContent = 'Login successful! Redirecting...';
+                
+                // Redirect to the next page after 1 second
+                setTimeout(() => {
+                    // Make sure you have a file named dashboard.html in the same folder!
+                    window.location.href = 'dashboard.html'; 
+                }, 1000);
+            } else {
+                authMessage.style.color = '#ff6b6b'; // Red color for error
+                authMessage.textContent = 'Invalid username or password. Please try again.';
+            }
+        });
+    </script>
+</body>
+</html>

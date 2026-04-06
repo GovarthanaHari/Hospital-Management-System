@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCore - Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo">M</div>
+                <h2>MedCore</h2>
+            </div>
+            <nav>
+                <a class="nav-link active" href="dashboard.html">Dashboard</a>
+                <a class="nav-link" href="patient.html">Patients</a>
+                <a class="nav-link" href="appointment.html">Appointments</a>
+                <a class="nav-link" href="beds.html">Bed Management</a>
+                <a class="nav-link" href="pharmacy.html">Pharmacy</a>
+                <a class="nav-link admin-only-link" href="staff.html">Staff</a>
+                <a class="nav-link admin-only-link" href="#">Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar" id="sidebar-avatar">A</div>
+                <div class="user-info">
+                    <h4 id="sidebar-profile-name">Admin User</h4>
+                    <p>System Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div>
+                    <h1>Main Dashboard</h1>
+                    <p>Central hub for profile, appointments, and patient management</p>
+                </div>
+            </header>
+
+            <section class="cards-grid">
+                <article class="card profile-card">
+                    <h3>User Profile</h3>
+                    <div class="profile-row"><span>Name:</span><strong id="dashboard-profile-name">Admin User</strong></div>
+                    <div class="profile-row"><span>Role:</span><strong>System Administrator</strong></div>
+                    <div class="profile-row"><span>Shift:</span><strong>Morning</strong></div>
+                </article>
+
+                <article class="card">
+                    <h3>Appointments Overview</h3>
+                    <ul>
+                        <li>Today: <strong id="stat-today">0</strong></li>
+                        <li>Pending: <strong id="stat-pending">0</strong></li>
+                        <li>Completed: <strong id="stat-completed">0</strong></li>
+                    </ul>
+                    <a class="btn-link" href="appointment.html">Go to Appointment Page</a>
+                </article>
+
+                <article class="card">
+                    <h3>Patient List</h3>
+                    <ul id="dashboard-patient-list">
+                        <li>No patient records yet</li>
+                    </ul>
+                    <a class="btn-link" href="patient.html">Open Patients Page</a>
+                </article>
+
+                <article class="card">
+                    <h3>Staff Overview</h3>
+                    <ul>
+                        <li>Total Doctors: <strong id="stat-doctors">0</strong></li>
+                        <li>Total Nurses: <strong id="stat-nurses">0</strong></li>
+                        <li>Total Wardboys: <strong id="stat-wardboys">0</strong></li>
+                    </ul>
+                    <a class="btn-link" href="staff.html">Open Staff Page</a>
+                </article>
+
+                <article class="card">
+                    <h3>Available Beds</h3>
+                    <ul>
+                        <li>Current Available: <strong id="stat-available-beds">0</strong></li>
+                    </ul>
+                    <a class="btn-link" href="beds.html">Open Bed Management</a>
+                </article>
+
+                <article class="card">
+                    <h3>Low Stock Alerts</h3>
+                    <ul>
+                        <li>Medicines Below 15: <strong id="stat-low-stock">0</strong></li>
+                    </ul>
+                    <a class="btn-link" href="pharmacy.html">Open Pharmacy</a>
+                </article>
+            </section>
+
+            <section class="charts-grid">
+                <article class="card">
+                    <h3>Patients by Department</h3>
+                    <canvas id="patientsByDepartmentChart"></canvas>
+                </article>
+                <article class="card">
+                    <h3>Appointment Statuses</h3>
+                    <canvas id="appointmentStatusChart"></canvas>
+                </article>
+            </section>
+        </main>
+    </div>
+    <div id="toast-container" class="toast-container"></div>
+    <script>
+        function getDb() {
+            const emptyDb = { appointments: [], patients: [], staff: [], beds: [], pharmacy: [] };
+            const raw = localStorage.getItem('medcore_db');
+            if (!raw) return emptyDb;
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+                    patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+                    staff: Array.isArray(parsed.staff) ? parsed.staff : [],
+                    beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+                    pharmacy: Array.isArray(parsed.pharmacy) ? parsed.pharmacy : []
+                };
+            } catch (e) {
+                return emptyDb;
+            }
+        }
+
+        const savedProfileName = localStorage.getItem('medcore_active_user') || localStorage.getItem('medcore_username') || "Admin User";
+        const activeRole = localStorage.getItem('medcore_active_role') || "Admin";
+        const safeName = savedProfileName || "Admin User";
+        const firstLetter = safeName.trim().charAt(0).toUpperCase() || "A";
+
+        document.getElementById('sidebar-profile-name').textContent = safeName;
+        document.getElementById('dashboard-profile-name').textContent = safeName;
+        document.getElementById('sidebar-avatar').textContent = firstLetter;
+        if (activeRole !== "Admin") {
+            document.querySelectorAll('.admin-only-link').forEach((el) => {
+                el.style.display = 'none';
+            });
+        }
+
+        const db = getDb();
+        const today = new Date().toISOString().split('T')[0];
+        const appointments = db.appointments;
+        const todayCount = appointments.filter((a) => a.date === today).length;
+        const pendingCount = appointments.filter((a) => a.status === 'Pending').length;
+        const completedCount = appointments.filter((a) => a.status === 'Completed').length;
+
+        document.getElementById('stat-today').textContent = String(todayCount);
+        document.getElementById('stat-pending').textContent = String(pendingCount);
+        document.getElementById('stat-completed').textContent = String(completedCount);
+
+        function getRole(staffItem) {
+            const rawRole = (staffItem.role || "").toLowerCase();
+            if (rawRole) return rawRole;
+            const name = (staffItem.name || "").toLowerCase();
+            if (name.includes("nurse")) return "nurse";
+            return "doctor";
+        }
+
+        const doctors = db.staff.filter((s) => getRole(s) === "doctor").length;
+        const nurses = db.staff.filter((s) => getRole(s) === "nurse").length;
+        const wardboys = db.staff.filter((s) => getRole(s) === "wardboy").length;
+        document.getElementById('stat-doctors').textContent = String(doctors);
+        document.getElementById('stat-nurses').textContent = String(nurses);
+        document.getElementById('stat-wardboys').textContent = String(wardboys);
+        const availableBedsCount = db.beds.filter((bed) => bed.status === 'Available').length;
+        const lowStockCount = db.pharmacy.filter((item) => Number(item.stockLevel) < 15).length;
+        document.getElementById('stat-available-beds').textContent = String(availableBedsCount);
+        document.getElementById('stat-low-stock').textContent = String(lowStockCount);
+
+        const patientList = document.getElementById('dashboard-patient-list');
+        const recentPatients = db.patients.slice(-4).reverse();
+        if (recentPatients.length > 0) {
+            patientList.innerHTML = recentPatients
+                .map((p) => `<li>${p.name} - ${p.department}</li>`)
+                .join('');
+        }
+
+        const deptCounts = db.patients.reduce((acc, patient) => {
+            const key = patient.department || "General";
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const statusCounts = db.appointments.reduce((acc, appointment) => {
+            const key = appointment.status || "Pending";
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, { Pending: 0, Completed: 0 });
+
+        new Chart(document.getElementById('patientsByDepartmentChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(deptCounts),
+                datasets: [{
+                    label: 'Patients',
+                    data: Object.values(deptCounts),
+                    backgroundColor: 'rgba(92, 199, 168, 0.6)',
+                    borderColor: '#5cc7a8',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: { legend: { labels: { color: '#ffffff' } } },
+                scales: {
+                    x: { ticks: { color: '#8c9b9d' }, grid: { color: 'rgba(255,255,255,0.08)' } },
+                    y: { ticks: { color: '#8c9b9d' }, grid: { color: 'rgba(255,255,255,0.08)' } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('appointmentStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Completed'],
+                datasets: [{
+                    data: [statusCounts.Pending || 0, statusCounts.Completed || 0],
+                    backgroundColor: ['#5cc7a8', '#2e9f83'],
+                    borderColor: '#181d20'
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { labels: { color: '#ffffff' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
